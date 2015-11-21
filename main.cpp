@@ -10,7 +10,7 @@
 #include "qp_eq.h"
 
 //#define OLD_FULLPIVLU // This enforces old legacy FullPivLU::compute method
-#define EIGEN_3_3_OR_BEYOND // if you are using eigen 3.3 or higher this must be set, if you are using eigen 3.2 this must be unset.
+//#define EIGEN_3_3_OR_BEYOND // if you are using eigen 3.3 or higher this must be set, if you are using eigen 3.2 this must be unset.
 
 
 #ifdef OLD_FULLPIVLU
@@ -405,7 +405,10 @@ int solve_DL(GCS::SubSystem* subsys, bool isRedundantsolving)
             h_sd  = alpha*g;
             
             // get the gauss-newton step
-            h_gn = Jx.fullPivLu().solve(-fx);
+            //h_gn = Jx.fullPivLu().solve(-fx); // this is the original in the method
+	    //h_gn = Jx.bdcSvd(Eigen::ComputeFullU|Eigen::ComputeFullV).solve(-fx); // ggael first proposal https://forum.kde.org/viewtopic.php?f=74&t=129439&p=346050#p346076 - this is unsupported Eigen code
+	    //h_gn = Jx.adjoint()*(Jx*Jx.adjoint()).fullPivLu().solve(-fx); // ggael second proposal - This compiles and makes the algorithm converge in 10 iterations
+	    h_gn = Jx.adjoint()*(Jx*Jx.adjoint()).ldlt().solve(-fx);  // ggael third proposal - This compiles and makes the algorithm converge in 7 iterations
             double rel_error = (Jx*h_gn + fx).norm() / fx.norm();
             if (rel_error > 1e15)
                 break;
